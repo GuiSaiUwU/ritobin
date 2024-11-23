@@ -1,0 +1,59 @@
+name: Build for RockyLinux (8)
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux/rockylinux:8
+
+    steps:
+    - name: "Ensuring packages will be found"
+      run: |
+        dnf -y install epel-release
+        dnf install -y dnf-plugins-core
+        dnf config-manager --enable powertools
+
+    - name: "Installing dependences"
+      run: |
+        dnf -y install gcc gcc-c++ gcc-toolset-13 tar git
+        dnf -y groupinstall "Development Tools"
+        dnf -y install cmake ninja-build
+        
+    - name: "Clone source"
+      uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+        
+    - name: "Build"
+      run: |
+        source /opt/rh/gcc-toolset-13/enable
+        mkdir build
+        cd build
+        cmake -G "Ninja" "-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_CXX_STANDARD=20" ..
+        cmake --build .
+        
+    - name: "Package"
+      shell: bash
+      run: |
+        mkdir -p bin/
+        cp build/ritobin_cli/ritobin_cli bin/ritobin_cli
+        cp build/ritobin_gui/ritobin_gui bin/ritobin_gui
+        cp -R LeagueHashes/hashes bin/hashes
+        sha256sum bin/ritobin_cli
+        sha256sum bin/ritobin_gui
+        tar -czf ritobin.tar.gz bin/
+        
+    - name: Create new GitHub Release and Tag
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: 'v1'
+        name: 'Release v1'
+        body: 'Linux (rocky linux 8).'
+        files: |
+          ritobin.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

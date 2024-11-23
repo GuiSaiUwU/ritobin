@@ -2,6 +2,7 @@
 #define BIN_NUMCONV_HPP
 #include <charconv>
 #include <string>
+#include <cstdint>
 
 #ifndef MSVC
 namespace ritobin {
