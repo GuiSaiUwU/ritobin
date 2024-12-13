@@ -29,7 +29,13 @@ jobs:
         cp -R LeagueHashes/hashes bin/hashes
         sha256sum bin/*.exe
         7z a ritobin.zip bin/
-    - name: "Release"
+
+    - name: Create new GitHub Release and Tag
       uses: softprops/action-gh-release@v2
       with:
-        files: ritobin.zip
+        tag_name: 'Windows'
+        name: 'Latest (Windows)'
+        files: |
+          ritobin.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
