@@ -219,15 +219,9 @@ struct Args {
     }
 
     void run_once() {
-        try {
-            auto bin = Bin{};
-            read(bin);
-            write(bin);
-        } catch (const std::runtime_error& err) {
-            std::cerr << "In: " << input_file << std::endl;
-            std::cerr << "Out: " << output_file << std::endl;
-            std::cerr << "Error: " << err.what() << std::endl;
-        }
+        auto bin = Bin{};
+        read(bin);
+        write(bin);
     }
 
     void run() {
@@ -270,11 +264,13 @@ struct Args {
 
 
 int main(int argc, char** argv) {
+    auto args = Args(argc, argv);
+    
     try {
-        auto args = Args(argc, argv);
         args.run();
         return 0;
     } catch (const std::runtime_error& err) {
+        std::cerr << "Error: " << err.what() << std::endl;
         std::cerr << err.what() << std::endl;
         return -1;
     }
