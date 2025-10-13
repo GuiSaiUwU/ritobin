@@ -51,6 +51,7 @@ struct Args {
     std::string input_format = {};
     std::string output_format = {};
     std::shared_ptr<std::optional<BinUnhasher>> unhasher = {};
+    std::vector<std::string> file_pairs_vec = {};
 
     Args(int argc, char** argv) {
         argparse::ArgumentParser program("ritobin");
@@ -68,7 +69,7 @@ struct Args {
                 .implicit_value(true);
         program.add_argument("input")
                 .help("input file or directory")
-                .required();
+                .default_value(std::string(""));
         program.add_argument("output")
                 .help("output file or directory")
                 .default_value(std::string(""));
@@ -81,6 +82,10 @@ struct Args {
         program.add_argument("-d", "--dir-hashes")
                 .default_value((fs::path(argv[0]).parent_path() / "hashes").generic_string())
                 .help("directory containing hashes");
+        program.add_argument("-f", "--file-pairs")
+                .help("Thing that u can use 'input1;output1;input2;output2;...'")
+                .default_value(std::string(""));
+
         try {
             program.parse_args(argc, argv);
             dir =  program.get<std::string>("--dir-hashes");
@@ -89,7 +94,25 @@ struct Args {
             log = program.get<bool>("--verbose");
             input_format = program.get<std::string>("--input-format");
             output_format = program.get<std::string>("--output-format");
-            if (recursive) {
+            std::string file_pairs = program.get<std::string>("--file-pairs");
+
+            if (!file_pairs.empty()) {
+                auto start = std::size_t{0};
+                while (true) {
+                    auto const end = file_pairs.find(';', start);
+                    if (end == std::string::npos) {
+                        file_pairs_vec.push_back(file_pairs.substr(start));
+                        break;
+                    } else {
+                        file_pairs_vec.push_back(file_pairs.substr(start, end - start));
+                        start = end + 1;
+                    }
+                }
+                if (file_pairs_vec.size() % 2 != 0) {
+                    throw std::runtime_error("File pairs must be even number of items!");
+                }
+            }
+            else if (recursive) {
                 input_dir = program.get<std::string>("input");
                 output_dir = program.get<std::string>("output");
             } else {
@@ -154,6 +177,10 @@ struct Args {
         auto error = format->read(bin, data);
         if (!error.empty()) {
             throw std::runtime_error(error);
+        }
+        if (file_pairs_vec.size() > 0) {
+            // otherwise wont be possible to convert bin->py and py->bin in one file pairs command
+			output_format = format->oposite_name();
         }
         if (output_file.empty() && output_format.empty()) {
             output_format = format->oposite_name();
@@ -225,6 +252,17 @@ struct Args {
     }
 
     void run() {
+        if (file_pairs_vec.size() > 0) {
+            for (auto i = std::size_t{0}; i < file_pairs_vec.size(); i += 2) {
+                input_file = file_pairs_vec[i];
+                output_file = file_pairs_vec[i + 1];
+                if (log) {
+                    std::cerr << "Processing pair: " << input_file << " -> " << output_file << std::endl;
+                }
+                run_once();
+            }
+            return;
+        }
         if (!recursive) {
             return run_once();
         }
