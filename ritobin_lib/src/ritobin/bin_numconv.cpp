@@ -10,8 +10,18 @@ namespace ritobin {
 
     bool from_num(std::string& str, float const& num) noexcept {
         char buffer[64] = {};
-        auto const size = sprintf(buffer, "%.9g", num);
+        auto const size = sprintf(buffer, "%.4f", num);
         str = std::string(buffer, buffer + size);
+
+        auto pos = str.find_last_not_of('0');
+        if (pos != std::string::npos) {
+            if (str[pos] == '.') {
+                str.resize(pos);
+            } else {
+                str.resize(pos + 1);
+            }
+        }
+
         return true;
     }
 
