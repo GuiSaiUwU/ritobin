@@ -83,8 +83,8 @@ struct Args {
                 .default_value((fs::path(argv[0]).parent_path() / "hashes").generic_string())
                 .help("directory containing hashes");
         program.add_argument("-f", "--file-pairs")
-                .help("Thing that u can use 'input1;output1;input2;output2;...'")
-                .default_value(std::string(""));
+                .help("Thing that u can use 'input1' 'output1' 'input2' 'output2'")
+                .nargs(argparse::nargs_pattern::any);
 
         try {
             program.parse_args(argc, argv);
@@ -94,24 +94,12 @@ struct Args {
             log = program.get<bool>("--verbose");
             input_format = program.get<std::string>("--input-format");
             output_format = program.get<std::string>("--output-format");
-            std::string file_pairs = program.get<std::string>("--file-pairs");
-
-            if (!file_pairs.empty()) {
-                auto start = std::size_t{0};
-                while (true) {
-                    auto const end = file_pairs.find(';', start);
-                    if (end == std::string::npos) {
-                        file_pairs_vec.push_back(file_pairs.substr(start));
-                        break;
-                    } else {
-                        file_pairs_vec.push_back(file_pairs.substr(start, end - start));
-                        start = end + 1;
-                    }
-                }
-                if (file_pairs_vec.size() % 2 != 0) {
-                    throw std::runtime_error("File pairs must be even number of items!");
-                }
+            
+            file_pairs_vec = program.get<std::vector<std::string>>("--file-pairs");
+            if (file_pairs_vec.size() % 2 != 0) {
+                throw std::runtime_error("File pairs must be even number of items!");
             }
+
             else if (recursive) {
                 input_dir = program.get<std::string>("input");
                 output_dir = program.get<std::string>("output");
